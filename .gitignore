@@ -1,0 +1,70 @@
+# ── Credentials & local config ───────────────────────────────────────────────
+# Never commit real config — use config.sample.json as the template
+tunetwerker/config.json
+splatter/config.json
+smartcarts/config.json
+
+# ── Database files ────────────────────────────────────────────────────────────
+# Migration outputs and live DB dumps stay local — too large, contain PII
+*.sql
+!radiodj_schema_2.0.4.7.sql   # schema-only (no data) is fine to track
+
+# ── Spreadsheets / generated reports ─────────────────────────────────────────
+RadioDJ_Duplicate_Tracks.xlsx
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+
+# ── Node (if any tooling is added later) ─────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── OS cruft ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# ── Editor / IDE ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ── Audio library / uploads ───────────────────────────────────────────────────
+# Station audio files are never committed
+tunetwerker/library/
+tunetwerker/uploads/
+tunetwerker/voicetracks/
+splatter/output/
+splatter/cache/
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.aac
+*.m4a
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Liquidsoap generated scripts (runtime artefacts) ─────────────────────────
+tunetwerker/liquidsoap_generated.liq

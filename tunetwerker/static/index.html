@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TUNE/TWERKER — Squirrel FM</title>
+  <link rel="stylesheet" href="/static/skins/default/skin.css">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  TOP BAR                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-logo">🐿</span>
+    <span class="topbar-title">TUNE/<strong>TWERKER</strong></span>
+    <span class="topbar-sub">Squirrel FM</span>
+  </div>
+
+  <!-- NOW PLAYING TICKER -->
+  <div class="topbar-nowplaying" id="topbarNowPlaying">
+    <span class="np-label">ON AIR</span>
+    <span class="np-artist" id="npArtist">—</span>
+    <span class="np-sep">·</span>
+    <span class="np-title" id="npTitle">Not connected</span>
+    <div class="np-progress-wrap">
+      <div class="np-progress-bar" id="npProgressBar"></div>
+    </div>
+    <span class="np-time" id="npTime">—</span>
+  </div>
+
+  <!-- MASTER CONTROLS -->
+  <div class="topbar-controls">
+    <button class="btn btn-danger btn-sm" id="btnSkip" title="Skip to next track">⏭ SKIP</button>
+    <div class="vol-wrap">
+      <label class="vol-label">VOL</label>
+      <input type="range" id="masterVolume" min="0" max="100" value="100" class="vol-slider">
+      <span class="vol-val" id="volVal">100</span>
+    </div>
+    <div class="liq-status" id="liqStatus" title="Liquidsoap connection status">
+      <span class="liq-dot" id="liqDot"></span>
+      <span class="liq-label" id="liqLabel">LS</span>
+    </div>
+  </div>
+
+  <!-- STUDIO CLOCK -->
+  <div class="topbar-clock">
+    <canvas id="clockFace" width="56" height="56"></canvas>
+    <div class="clock-digital" id="clockDigital">00:00:00</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  NAVIGATION                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<nav class="app-nav">
+  <button class="nav-tab active" data-panel="panelCrate">🎵 THE CRATE</button>
+  <button class="nav-tab" data-panel="panelCue">✂️ CUE EDITOR</button>
+  <button class="nav-tab" data-panel="panelOnAir">📡 ON AIR / QUEUE</button>
+  <button class="nav-tab" data-panel="panelBooth">🎙 THE BOOTH</button>
+  <button class="nav-tab" data-panel="panelWall">🧱 THE WALL</button>
+  <button class="nav-tab" data-panel="panelLog">📋 THE LOG</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  PANELS                                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<main class="app-main">
+
+  <!-- ─── THE CRATE ──────────────────────────────────────────────────── -->
+  <section id="panelCrate" class="panel active">
+    <div class="crate-toolbar">
+      <input type="search" id="crateSearch" class="input-text" placeholder="Search artist, title, album…">
+      <select id="crateSubcat" class="input-select">
+        <option value="0">All Categories</option>
+      </select>
+      <select id="crateGenre" class="input-select">
+        <option value="0">All Genres</option>
+      </select>
+      <select id="crateSongType" class="input-select">
+        <option value="-1">All Types</option>
+        <option value="0">Music</option>
+        <option value="1">Jingle/ID</option>
+        <option value="2">Voice Track</option>
+        <option value="3">Commercial</option>
+        <option value="4">News</option>
+        <option value="5">Sweeper</option>
+        <option value="6">Promo</option>
+        <option value="7">Imaging</option>
+        <option value="8">Intro</option>
+        <option value="9">Outro</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="crateSearchBtn">🔍 Search</button>
+      <button class="btn btn-sm" id="crateImportBtn">⬆ Import</button>
+      <span class="crate-count" id="crateCount">0 tracks</span>
+    </div>
+
+    <div class="crate-table-wrap">
+      <table class="crate-table" id="crateTable">
+        <thead>
+          <tr>
+            <th class="col-type">Type</th>
+            <th class="col-artist">Artist</th>
+            <th class="col-title">Title</th>
+            <th class="col-album">Album</th>
+            <th class="col-dur">Dur</th>
+            <th class="col-bpm">BPM</th>
+            <th class="col-year">Year</th>
+            <th class="col-plays">Plays</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="crateBody">
+          <tr class="crate-empty"><td colspan="9">Use the search bar to find tracks.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="crate-pagination">
+      <button class="btn btn-sm" id="cratePrevPage">◀ Prev</button>
+      <span id="cratePage">Page 1</span>
+      <button class="btn btn-sm" id="crateNextPage">Next ▶</button>
+    </div>
+  </section>
+
+  <!-- ─── CUE EDITOR ─────────────────────────────────────────────────── -->
+  <section id="panelCue" class="panel">
+    <div class="cue-header">
+      <div class="cue-meta" id="cueMeta">
+        <span class="cue-meta-artist" id="cueMetaArtist">No track loaded</span>
+        <span class="cue-meta-title" id="cueMetaTitle"></span>
+        <span class="cue-meta-dur" id="cueMetaDur"></span>
+      </div>
+      <div class="cue-header-actions">
+        <button class="btn btn-sm" id="cueBtnLoad">📂 Load Track</button>
+        <button class="btn btn-primary btn-sm" id="cueBtnSave">💾 Save Cues</button>
+        <button class="btn btn-sm" id="cueBtnAddQueue">+ Queue</button>
+      </div>
+    </div>
+
+    <!-- WAVEFORM AREA -->
+    <div class="waveform-container" id="waveformContainer">
+      <div id="waveform"></div>
+      <div id="waveformTimeline"></div>
+      <div class="cue-markers" id="cueMarkers"></div>
+      <div class="waveform-placeholder" id="waveformPlaceholder">
+        Load a track from The Crate to edit cue points.
+      </div>
+    </div>
+
+    <!-- TRANSPORT -->
+    <div class="cue-transport">
+      <button class="btn btn-sm" id="cuePlay">▶ Play</button>
+      <button class="btn btn-sm" id="cuePause">⏸ Pause</button>
+      <button class="btn btn-sm" id="cueStop">⏹ Stop</button>
+      <div class="cue-position">
+        <span class="cue-pos-label">POS</span>
+        <span class="cue-pos-val" id="cuePosVal">0:00.000</span>
+      </div>
+      <div class="cue-zoom">
+        <label>ZOOM</label>
+        <input type="range" id="cueZoom" min="1" max="200" value="1" class="vol-slider">
+      </div>
+    </div>
+
+    <!-- CUE POINT CONTROLS -->
+    <div class="cue-points-panel">
+      <div class="cue-point-row" id="cpSTA">
+        <div class="cp-colour cp-sta"></div>
+        <span class="cp-label">STA</span>
+        <span class="cp-desc">Song Start</span>
+        <input type="number" class="cp-input" id="cpSTA_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="sta">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="sta">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="sta">Clear</button>
+      </div>
+      <div class="cue-point-row" id="cpINT">
+        <div class="cp-colour cp-int"></div>
+        <span class="cp-label">INT</span>
+        <span class="cp-desc">Intro End (vocal in)</span>
+        <input type="number" class="cp-input" id="cpINT_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="int">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="int">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="int">Clear</button>
+      </div>
+      <div class="cue-point-row" id="cpHIN">
+        <div class="cp-colour cp-hin"></div>
+        <span class="cp-label">HIN</span>
+        <span class="cp-desc">Hook In</span>
+        <input type="number" class="cp-input" id="cpHIN_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="hin">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="hin">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="hin">Clear</button>
+      </div>
+      <div class="cue-point-row" id="cpHOU">
+        <div class="cp-colour cp-hou"></div>
+        <span class="cp-label">HOU</span>
+        <span class="cp-desc">Hook Out</span>
+        <input type="number" class="cp-input" id="cpHOU_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="hou">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="hou">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="hou">Clear</button>
+      </div>
+      <div class="cue-point-row" id="cpXTA">
+        <div class="cp-colour cp-xta"></div>
+        <span class="cp-label">XTA</span>
+        <span class="cp-desc">Extro Start (outro begins)</span>
+        <input type="number" class="cp-input" id="cpXTA_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="xta">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="xta">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="xta">Clear</button>
+      </div>
+      <div class="cue-point-row" id="cpFIN">
+        <div class="cp-colour cp-fin"></div>
+        <span class="cp-label">FIN</span>
+        <span class="cp-desc">Fade In Start</span>
+        <input type="number" class="cp-input" id="cpFIN_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="fin">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="fin">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="fin">Clear</button>
+      </div>
+      <div class="cue-point-row" id="cpFOU">
+        <div class="cp-colour cp-fou"></div>
+        <span class="cp-label">FOU</span>
+        <span class="cp-desc">Fade Out End</span>
+        <input type="number" class="cp-input" id="cpFOU_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="fou">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="fou">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="fou">Clear</button>
+      </div>
+      <div class="cue-point-row" id="cpEND">
+        <div class="cp-colour cp-end"></div>
+        <span class="cp-label">END</span>
+        <span class="cp-desc">Song End</span>
+        <input type="number" class="cp-input" id="cpEND_val" step="0.001" min="0" value="">
+        <button class="btn btn-sm cp-set" data-cue="end">Set Here</button>
+        <button class="btn btn-sm cp-goto" data-cue="end">Go To</button>
+        <button class="btn btn-sm cp-clear" data-cue="end">Clear</button>
+      </div>
+    </div>
+
+    <!-- METADATA QUICK EDIT -->
+    <div class="cue-meta-edit" id="cueMetaEdit">
+      <h3 class="section-label">Track Metadata</h3>
+      <div class="meta-grid">
+        <label>Artist <input type="text" id="metaArtist" class="input-text"></label>
+        <label>Title <input type="text" id="metaTitle" class="input-text"></label>
+        <label>Album <input type="text" id="metaAlbum" class="input-text"></label>
+        <label>Year <input type="number" id="metaYear" class="input-text" min="1900" max="2100"></label>
+        <label>BPM <input type="number" id="metaBpm" class="input-text" step="0.1" min="0"></label>
+        <label>Genre
+          <select id="metaGenre" class="input-select"></select>
+        </label>
+        <label>Category
+          <select id="metaSubcat" class="input-select"></select>
+        </label>
+        <label>Song Type
+          <select id="metaSongType" class="input-select">
+            <option value="0">Music</option>
+            <option value="1">Jingle/ID</option>
+            <option value="2">Voice Track</option>
+            <option value="3">Commercial</option>
+            <option value="4">News</option>
+            <option value="5">Sweeper</option>
+            <option value="6">Promo</option>
+            <option value="7">Imaging</option>
+            <option value="8">Intro</option>
+            <option value="9">Outro</option>
+          </select>
+        </label>
+        <label>Enabled
+          <input type="checkbox" id="metaEnabled" checked>
+        </label>
+      </div>
+      <button class="btn btn-primary btn-sm" id="metaSaveBtn">💾 Save Metadata</button>
+    </div>
+  </section>
+
+  <!-- ─── ON AIR / QUEUE ─────────────────────────────────────────────── -->
+  <section id="panelOnAir" class="panel">
+    <div class="onair-layout">
+
+      <!-- NOW PLAYING -->
+      <div class="onair-nowplaying card">
+        <h2 class="card-title">🔴 ON AIR</h2>
+        <div class="onair-track" id="onairTrack">
+          <div class="onair-art" id="onairArt">🎵</div>
+          <div class="onair-info">
+            <div class="onair-artist" id="onairArtist">—</div>
+            <div class="onair-title" id="onairTitle">Not connected</div>
+            <div class="onair-album" id="onairAlbum"></div>
+          </div>
+        </div>
+        <div class="onair-progress-wrap">
+          <div class="onair-progress-bar" id="onairProgress"></div>
+        </div>
+        <div class="onair-times">
+          <span id="onairElapsed">0:00</span>
+          <span id="onairRemain">-0:00</span>
+        </div>
+        <!-- VU METER -->
+        <div class="vu-meter" id="vuMeter">
+          <div class="vu-channel">
+            <div class="vu-bar-wrap"><div class="vu-bar" id="vuL"></div></div>
+            <div class="vu-label">L</div>
+          </div>
+          <div class="vu-channel">
+            <div class="vu-bar-wrap"><div class="vu-bar" id="vuR"></div></div>
+            <div class="vu-label">R</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUEUE -->
+      <div class="onair-queue card">
+        <div class="card-title-row">
+          <h2 class="card-title">📋 QUEUE</h2>
+          <div class="queue-actions">
+            <button class="btn btn-sm" id="queueClearBtn">🗑 Clear</button>
+            <span class="queue-eta" id="queueETA">ETA: —</span>
+          </div>
+        </div>
+        <div class="queue-list" id="queueList">
+          <div class="queue-empty">Queue is empty</div>
+        </div>
+      </div>
+
+      <!-- QUICK ADD -->
+      <div class="onair-quickadd card">
+        <h2 class="card-title">⚡ QUICK ADD</h2>
+        <div class="quickadd-search-row">
+          <input type="search" id="quickSearch" class="input-text" placeholder="Search to add…">
+          <button class="btn btn-sm btn-primary" id="quickSearchBtn">Go</button>
+        </div>
+        <div class="quickadd-results" id="quickResults"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── THE BOOTH ──────────────────────────────────────────────────── -->
+  <section id="panelBooth" class="panel">
+    <div class="booth-layout">
+
+      <!-- CONTEXT: SURROUNDING TRACKS -->
+      <div class="booth-context card">
+        <h2 class="card-title">🎵 VOICE TRACK CONTEXT</h2>
+        <div class="booth-context-tracks">
+          <div class="booth-prev-track" id="boothPrevTrack">
+            <div class="ctx-label">PREVIOUS</div>
+            <div class="ctx-artist" id="ctxPrevArtist">—</div>
+            <div class="ctx-title" id="ctxPrevTitle">Select a track below</div>
+            <div class="ctx-dur" id="ctxPrevDur"></div>
+            <div class="ctx-xta" id="ctxPrevXTA">XTA: —</div>
+          </div>
+          <div class="booth-vt-arrow">🎙</div>
+          <div class="booth-next-track" id="boothNextTrack">
+            <div class="ctx-label">NEXT</div>
+            <div class="ctx-artist" id="ctxNextArtist">—</div>
+            <div class="ctx-title" id="ctxNextTitle">Select a track below</div>
+            <div class="ctx-dur" id="ctxNextDur"></div>
+            <div class="ctx-int" id="ctxNextINT">INT: —</div>
+          </div>
+        </div>
+
+        <!-- PREVIEW TIMELINE: shows overlap zones like StationPlaylist -->
+        <div class="booth-timeline" id="boothTimeline">
+          <div class="booth-timeline-label">Overlap Preview</div>
+          <div class="booth-timeline-track" id="btlPrev">
+            <div class="btl-track-label">PREV</div>
+            <div class="btl-bar btl-prev-bar" id="btlPrevBar">
+              <div class="btl-xta-zone" id="btlXtaZone" title="XTA → END overlap zone"></div>
+            </div>
+          </div>
+          <div class="booth-timeline-track" id="btlVT">
+            <div class="btl-track-label">VT</div>
+            <div class="btl-bar btl-vt-bar" id="btlVTBar"></div>
+          </div>
+          <div class="booth-timeline-track" id="btlNext">
+            <div class="btl-track-label">NEXT</div>
+            <div class="btl-bar btl-next-bar" id="btlNextBar">
+              <div class="btl-int-zone" id="btlIntZone" title="STA → INT ramp zone"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECORDER -->
+      <div class="booth-recorder card">
+        <h2 class="card-title">⏺ RECORD</h2>
+
+        <!-- Track selectors -->
+        <div class="booth-selectors">
+          <div class="booth-select-row">
+            <label>Previous Track</label>
+            <input type="search" id="boothPrevSearch" class="input-text" placeholder="Search for previous track…">
+            <div class="booth-search-results" id="boothPrevResults"></div>
+          </div>
+          <div class="booth-select-row">
+            <label>Next Track</label>
+            <input type="search" id="boothNextSearch" class="input-text" placeholder="Search for next track…">
+            <div class="booth-search-results" id="boothNextResults"></div>
+          </div>
+        </div>
+
+        <!-- Recording controls -->
+        <div class="rec-controls">
+          <div class="rec-level-wrap">
+            <div class="rec-vu-bar" id="recVUBar"></div>
+            <div class="rec-vu-label">MIC LEVEL</div>
+          </div>
+          <button class="btn btn-danger rec-btn" id="recBtn">⏺ RECORD</button>
+          <button class="btn btn-sm" id="recPlayBtn" disabled>▶ Preview</button>
+          <button class="btn btn-sm" id="recStopBtn" disabled>⏹ Stop</button>
+          <div class="rec-time" id="recTime">0:00</div>
+          <div class="rec-status" id="recStatus">Ready</div>
+        </div>
+
+        <!-- Waveform preview -->
+        <div class="rec-waveform" id="recWaveform"></div>
+
+        <!-- Save form -->
+        <div class="rec-save-form" id="recSaveForm">
+          <h3 class="section-label">Save Voice Track</h3>
+          <div class="meta-grid">
+            <label>Title <input type="text" id="vtTitle" class="input-text" placeholder="e.g. Midday Wrap-around"></label>
+            <label>Artist <input type="text" id="vtArtist" class="input-text" placeholder="Squirrel FM"></label>
+            <label>Category
+              <select id="vtSubcat" class="input-select"></select>
+            </label>
+          </div>
+          <div class="rec-save-actions">
+            <button class="btn btn-primary" id="recSaveBtn" disabled>💾 Save to Library</button>
+            <button class="btn btn-sm" id="recDiscardBtn">🗑 Discard</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VOICE TRACK LIBRARY -->
+      <div class="booth-library card">
+        <h2 class="card-title">📁 VOICE TRACKS</h2>
+        <div class="vt-list" id="vtList">
+          <div class="queue-empty">No voice tracks saved yet.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── THE WALL ───────────────────────────────────────────────────── -->
+  <section id="panelWall" class="panel">
+    <div class="wall-toolbar">
+      <span class="wall-bank-label">CART BANK:</span>
+      <div class="wall-bank-tabs" id="wallBankTabs">
+        <!-- Bank tabs generated dynamically -->
+      </div>
+      <button class="btn btn-sm" id="wallReloadBtn">↻ Reload</button>
+    </div>
+    <div class="wall-grid" id="wallGrid">
+      <!-- Cart buttons generated dynamically -->
+      <div class="wall-empty" id="wallEmpty">Loading carts…</div>
+    </div>
+  </section>
+
+  <!-- ─── THE LOG ────────────────────────────────────────────────────── -->
+  <section id="panelLog" class="panel">
+    <div class="log-toolbar">
+      <input type="search" id="logSearch" class="input-text" placeholder="Search history…">
+      <button class="btn btn-sm btn-primary" id="logSearchBtn">🔍 Search</button>
+      <span class="log-count" id="logCount"></span>
+    </div>
+    <div class="log-table-wrap">
+      <table class="log-table" id="logTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Artist</th>
+            <th>Title</th>
+            <th>Duration</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody id="logBody">
+          <tr><td colspan="5" class="crate-empty">Loading history…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="crate-pagination">
+      <button class="btn btn-sm" id="logPrevPage">◀ Prev</button>
+      <span id="logPage">Page 1</span>
+      <button class="btn btn-sm" id="logNextPage">Next ▶</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  IMPORT MODAL                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="importModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⬆ Import Audio File</span>
+      <button class="modal-close" id="importClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-drop-zone" id="importDropZone">
+        <span>Drop audio file here or click to browse</span>
+        <input type="file" id="importFile" accept="audio/*" style="display:none">
+      </div>
+      <div class="meta-grid" style="margin-top:1rem">
+        <label>Artist <input type="text" id="importArtist" class="input-text"></label>
+        <label>Title <input type="text" id="importTitle" class="input-text"></label>
+        <label>Category
+          <select id="importSubcat" class="input-select"></select>
+        </label>
+        <label>Genre
+          <select id="importGenre" class="input-select"><option value="0">None</option></select>
+        </label>
+        <label>Song Type
+          <select id="importSongType" class="input-select">
+            <option value="0">Music</option>
+            <option value="1">Jingle/ID</option>
+            <option value="3">Commercial</option>
+            <option value="5">Sweeper</option>
+            <option value="6">Promo</option>
+            <option value="7">Imaging</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="importSubmitBtn" disabled>⬆ Import</button>
+      <button class="btn btn-sm" id="importCancelBtn">Cancel</button>
+      <div class="import-progress" id="importProgress"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  LOAD TRACK MODAL (Cue Editor quick-load)                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="loadTrackModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📂 Load Track into Cue Editor</span>
+      <button class="modal-close" id="loadTrackClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="search" id="loadTrackSearch" class="input-text" placeholder="Search…" style="width:100%">
+      <div class="quickadd-results" id="loadTrackResults" style="max-height:300px;overflow-y:auto;margin-top:.5rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- WaveSurfer.js via CDN -->
+<script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+
+<!-- App modules -->
+<script src="/static/js/main.js"></script>
+<script src="/static/js/clock.js"></script>
+<script src="/static/js/crate.js"></script>
+<script src="/static/js/cue.js"></script>
+<script src="/static/js/queue.js"></script>
+<script src="/static/js/booth.js"></script>
+<script src="/static/js/wall.js"></script>
+<script src="/static/js/log.js"></script>
+
+</body>
+</html>

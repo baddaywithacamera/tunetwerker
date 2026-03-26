@@ -1,0 +1,37 @@
+{
+  "_note": "Copy this file to config.json and fill in your values. config.json is gitignored.",
+
+  "db": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "radiodj",
+    "password": "YOUR_DB_PASSWORD",
+    "database": "radiodj2036"
+  },
+
+  "server": {
+    "host": "0.0.0.0",
+    "port": 7700,
+    "secret_key": "CHANGE_THIS_TO_A_LONG_RANDOM_STRING"
+  },
+
+  "library": {
+    "_note_path_map": "Map Windows drive paths (as stored in RadioDJ DB) to local Linux paths.",
+    "path_map": {
+      "Z:\\\\OneDrive": "/mnt/your/music/path"
+    },
+    "voice_track_dir": "/var/tunetwerker/voice_tracks",
+    "temp_dir": "/tmp/tunetwerker"
+  },
+
+  "liquidsoap": {
+    "host": "127.0.0.1",
+    "port": 1234,
+    "script_path": "/etc/liquidsoap/squirrelfm.liq"
+  },
+
+  "station": {
+    "name": "Your Station Name",
+    "artist_field": "Your Station Name"
+  }
+}
